@@ -4,61 +4,50 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Building the code...'
-                bat 'mvn clean install'
+                echo 'Building the project.'
+                // Use 'bat' instead of 'sh' for Windows
+                sh 'mvn clean package'
             }
         }
+
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running unit and integration tests...'
-                bat 'mvn test'
+                echo 'Running Unit and Integration Tests.'
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    emailext(
+                        attachLog: true, // Attach the log to the email
+                        to: 'dewumisamuduni@gmail.com',
+                        subject: "Unit and Integration Tests: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+                        body: "Unit and Integration Tests have been executed. Please check the results."
+                    )
+                }
             }
         }
+
         stage('Code Analysis') {
             steps {
-                echo 'Performing code analysis...'
-                bat 'sonar-scanner'
+                echo 'Running Code Analysis.'
+                sh 'mvn sonar:sonar' // Example command for code analysis
             }
         }
-        stage('Security Scan') {
+
+        stage('Deploy') {
             steps {
-                echo 'Running security scan...'
-                bat 'dependency-check'
-            }
-        }
-        stage('Deploy to Staging') {
-            steps {
-                echo 'Deploying to staging...'
-                bat 'aws deploy push ...'
-            }
-        }
-        stage('Integration Tests on Staging') {
-            steps {
-                echo 'Running integration tests on staging...'
-                bat 'postman run tests'
-            }
-        }
-        stage('Deploy to Production') {
-            steps {
-                echo 'Deploying to production...'
-                bat 'aws deploy push ...'
+                echo 'Deploying the application.'
+                sh 'mvn deploy' // Example deploy command
             }
         }
     }
 
     post {
-        always {
-            echo 'Pipeline completed.'
-        }
         success {
-            mail to: 'dewumisamuduni@gmail.com',
-                 subject: "Pipeline Success",
-                 body: """The pipeline has succeeded successfully. Check the logs for more details."""
+            echo 'Pipeline completed successfully!'
         }
         failure {
-            mail to: 'dewumisamuduni@gmail.com',
-                 subject: "Pipeline Failure",
-                 body: """The pipeline has failed. Please check the logs."""
+            echo 'Pipeline failed!'
         }
     }
 }
